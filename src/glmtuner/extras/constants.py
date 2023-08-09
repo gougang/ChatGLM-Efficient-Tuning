@@ -10,5 +10,6 @@ METHODS = ["full", "freeze", "p_tuning", "lora"]
 
 SUPPORTED_MODELS = {
     "ChatGLM-6B": "THUDM/chatglm-6b",
-    "ChatGLM2-6B": "THUDM/chatglm2-6b"
+    # "ChatGLM2-6B": "THUDM/chatglm2-6b"
+    "ChatGLM2-6B": "/root/autodl-tmp/chatglm2-6b"
 }
