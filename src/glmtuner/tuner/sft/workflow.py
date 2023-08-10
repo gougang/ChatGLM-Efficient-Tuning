@@ -14,12 +14,13 @@ from glmtuner.tuner.sft.trainer import Seq2SeqTrainerForChatGLM
 
 
 def run_sft(
-    model_args: ModelArguments,
-    data_args: DataArguments,
-    training_args: Seq2SeqTrainingArguments,
-    finetuning_args: FinetuningArguments,
-    callbacks: Optional[List[TrainerCallback]] = [LogCallback()]
+        model_args: ModelArguments,
+        data_args: DataArguments,
+        training_args: Seq2SeqTrainingArguments,
+        finetuning_args: FinetuningArguments,
+        callbacks: Optional[List[TrainerCallback]] = [LogCallback()]
 ):
+    # 获取数据集
     dataset = get_dataset(model_args, data_args)
     model, tokenizer = load_model_and_tokenizer(model_args, finetuning_args, training_args.do_train, stage="sft")
     dataset = preprocess_dataset(dataset, tokenizer, data_args, training_args, stage="sft")
@@ -31,10 +32,13 @@ def run_sft(
 
     # Override the decoding parameters of Seq2SeqTrainer
     training_args.generation_max_length = training_args.generation_max_length if \
-                training_args.generation_max_length is not None else data_args.max_target_length
+        training_args.generation_max_length is not None else data_args.max_target_length
     training_args.generation_num_beams = data_args.eval_num_beams if \
-                data_args.eval_num_beams is not None else training_args.generation_num_beams
+        data_args.eval_num_beams is not None else training_args.generation_num_beams
 
+    """
+        这个是sft阶段的训练，用的是 Seq2SeqTrainerForChatGLM
+    """
     # Initialize our Trainer
     trainer = Seq2SeqTrainerForChatGLM(
         finetuning_args=finetuning_args,
@@ -55,6 +59,7 @@ def run_sft(
         "temperature": 0.95,
         "logits_processor": get_logits_processor()
     }
+    print(f"sft gen_kwargs is: {gen_kwargs}")
 
     # Training
     if training_args.do_train:
@@ -69,7 +74,7 @@ def run_sft(
     # Evaluation
     if training_args.do_eval:
         metrics = trainer.evaluate(metric_key_prefix="eval", **gen_kwargs)
-        if training_args.predict_with_generate: # eval_loss will be wrong if predict_with_generate is enabled
+        if training_args.predict_with_generate:  # eval_loss will be wrong if predict_with_generate is enabled
             metrics.pop("eval_loss", None)
         trainer.log_metrics("eval", metrics)
         trainer.save_metrics("eval", metrics)
@@ -77,7 +82,7 @@ def run_sft(
     # Predict
     if training_args.do_predict:
         predict_results = trainer.predict(dataset, metric_key_prefix="predict", **gen_kwargs)
-        if training_args.predict_with_generate: # predict_loss will be wrong if predict_with_generate is enabled
+        if training_args.predict_with_generate:  # predict_loss will be wrong if predict_with_generate is enabled
             predict_results.metrics.pop("predict_loss", None)
         trainer.log_metrics("predict", predict_results.metrics)
         trainer.save_metrics("predict", predict_results.metrics)

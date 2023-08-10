@@ -29,6 +29,9 @@ def run_rm(
 
     training_args.remove_unused_columns = False # Important for pairwise dataset
 
+    """
+        这个是rm阶段的训练，用的是 PairwiseTrainerForChatGLM
+    """
     # Initialize our Trainer
     trainer = PairwiseTrainerForChatGLM(
         finetuning_args=finetuning_args,

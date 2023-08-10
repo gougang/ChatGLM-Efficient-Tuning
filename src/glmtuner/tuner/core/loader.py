@@ -20,9 +20,7 @@ from glmtuner.extras.save_and_load import load_valuehead_params
 from glmtuner.hparams import ModelArguments, FinetuningArguments
 from glmtuner.tuner.core.adapter import init_adapter
 
-
 logger = get_logger(__name__)
-
 
 check_min_version("4.29.1")
 require_version("datasets>=2.12.0", "To fix: pip install datasets>=2.12.0")
@@ -30,12 +28,15 @@ require_version("accelerate>=0.21.0", "To fix: pip install accelerate>=0.21.0")
 require_version("peft>=0.4.0", "To fix: pip install peft>=0.4.0")
 require_version("trl>=0.4.7", "To fix: pip install trl>=0.4.7")
 
+"""
+这个类是个公共的类型，用来加载模型和tokenizer
+"""
 
 def load_model_and_tokenizer(
-    model_args: ModelArguments,
-    finetuning_args: FinetuningArguments,
-    is_trainable: Optional[bool] = False,
-    stage: Optional[Literal["sft", "rm", "ppo"]] = "sft"
+        model_args: ModelArguments,
+        finetuning_args: FinetuningArguments,
+        is_trainable: Optional[bool] = False,
+        stage: Optional[Literal["sft", "rm", "ppo"]] = "sft"
 ) -> Tuple[PreTrainedModel, PreTrainedTokenizerBase]:
     r"""
     Loads pretrained model and tokenizer.
@@ -52,9 +53,9 @@ def load_model_and_tokenizer(
 
     if model_args.quantization_bit is not None:
         if is_trainable and finetuning_args.finetuning_type == "lora":
-            quantization = "bnb" # use bnb's quantization
+            quantization = "bnb"  # use bnb's quantization
         else:
-            quantization = "cpm" # use cpm's quantization
+            quantization = "cpm"  # use cpm's quantization
     else:
         quantization = None
 
@@ -65,6 +66,12 @@ def load_model_and_tokenizer(
         "use_auth_token": True if model_args.use_auth_token else None,
     }
 
+    # 参考地址：https://huggingface.co/docs/transformers/model_doc/auto
+    # 获取tokenizer
+    """
+    use_fast: Use a fast Rust-based tokenizer if it is supported for a given model.
+            If a fast tokenizer is not available for a given model, a normal Python-based tokenizer is returned instead.
+    """
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
         use_fast=model_args.use_fast_tokenizer,
@@ -79,7 +86,7 @@ def load_model_and_tokenizer(
 
     # P-Tuning v2 configurations. Use the built-in p-tuning method of ChatGLM.
     if finetuning_args.finetuning_type == "p_tuning":
-        config.pre_seq_len = finetuning_args.pre_seq_len # enable this will fix other parameters automatically
+        config.pre_seq_len = finetuning_args.pre_seq_len  # enable this will fix other parameters automatically
         config.prefix_projection = finetuning_args.prefix_projection
 
     # Quantization configurations for Full, Freeze and LoRA in training (using bitsandbytes library).
@@ -109,6 +116,7 @@ def load_model_and_tokenizer(
 
     # Load and prepare pretrained models (without valuehead).
     model = AutoModel.from_pretrained(model_to_load, config=config, **config_kwargs)
+    print(f"model is: {model}")
 
     # Register auto class to save the custom code files.
     if isinstance(config, PretrainedConfig):
@@ -118,17 +126,20 @@ def load_model_and_tokenizer(
     if isinstance(model, PreTrainedModel):
         model.__class__.register_for_auto_class()
 
-    if tokenizer.eos_token_id == 130005: # ChatGLM-6B
+    if tokenizer.eos_token_id == 130005:  # ChatGLM-6B
         output_embedding_base_layer = model
         output_embedding_layer_name = "lm_head"
-    elif tokenizer.eos_token_id == 2: # ChatGLM2-6B
+    elif tokenizer.eos_token_id == 2:  # ChatGLM2-6B
+        print("tokenizer.eos_token_id == 2, use ChatGLM2-6B")
         assert hasattr(model, "transformer"), "Please update the model files of ChatGLM-6B."
+        # Q：此处为什么会做这个操作呢？
         model.lm_head = model.transformer.output_layer
         output_embedding_base_layer = model.transformer
         output_embedding_layer_name = "output_layer"
     else:
         raise ValueError("Please update the model files of ChatGLM2-6B.")
 
+    print(f"is_trainable is: {is_trainable}")
     # Initialize adapters
     model = prepare_model_for_training(
         model,
@@ -138,27 +149,34 @@ def load_model_and_tokenizer(
     ) if is_trainable else model
     model = init_adapter(model, model_args, finetuning_args, is_trainable)
 
+    print(f"new model is : {model}")
+
     if not is_trainable:
-        model.requires_grad_(False) # fix all model params
-        model = model.half() # cast all params to float16 for inference
+        model.requires_grad_(False)  # fix all model params
+        model = model.half()  # cast all params to float16 for inference
 
     # Quantization with the built-in method for P-Tuning v2 training or evaluation.
     # Model parameters should be cast to float16 in quantized P-Tuning setting.
     if quantization == "cpm":
-        if is_trainable: # convert all params into half precision except prefix_encoder in training
+        if is_trainable:  # convert all params into half precision except prefix_encoder in training
             for name, param in model.named_parameters():
                 if "prefix_encoder" not in name:
                     param.data = param.data.to(torch.float16)
 
-        model.quantize(model_args.quantization_bit) # built-in method in ChatGLM-6B, also an in-place operation
+        model.quantize(model_args.quantization_bit)  # built-in method in ChatGLM-6B, also an in-place operation
 
     if quantization is not None:
         logger.info("Quantized model to {} bit.".format(model_args.quantization_bit))
 
-    if stage == "rm" or stage == "ppo": # add value head
+    if stage == "rm" or stage == "ppo":  # add value head
+        """
+        An autoregressive model with a value head in addition to the language model head. This class inherits from ~trl.PreTrainedModelWrapper and wraps a transformers.PreTrainedModel class. 
+        The wrapper class supports classic functions such as from_pretrained, push_to_hub and generate.
+        To call a method of the wrapped model, simply manipulate the pretrained_model attribute of this class.
+        """
         model = AutoModelForCausalLMWithValueHead.from_pretrained(model)
-
-        if stage == "rm" and model_args.checkpoint_dir is not None: # load valuehead weights to evaluate reward model
+        print(f"AutoModelForCausalLMWithValueHead model is:{model}")
+        if stage == "rm" and model_args.checkpoint_dir is not None:  # load valuehead weights to evaluate reward model
             logger.warning("Only the last checkpoint containing valuehead will be loaded as the valuehead.")
             if load_valuehead_params(model, model_args.checkpoint_dir[-1]):
                 model.v_head.load_state_dict({
@@ -166,7 +184,7 @@ def load_model_and_tokenizer(
                     "summary.bias": getattr(model, "reward_head_bias")
                 })
 
-        if stage == "ppo": # load reward model
+        if stage == "ppo":  # load reward model
             assert is_trainable, "PPO stage cannot be performed at evaluation."
             assert model_args.reward_model is not None, "Reward model is necessary for PPO training."
             logger.info("Load reward model from {}".format(model_args.reward_model))
