@@ -2,7 +2,9 @@ import json
 from typing import Literal, Optional
 from dataclasses import asdict, dataclass, field
 
+from glmtuner.extras.logging import get_logger
 
+logger = get_logger(__name__)
 @dataclass
 class FinetuningArguments:
     """
