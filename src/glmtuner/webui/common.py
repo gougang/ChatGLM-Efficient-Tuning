@@ -7,7 +7,9 @@ from peft.utils import WEIGHTS_NAME as PEFT_WEIGHTS_NAME
 from transformers.trainer import WEIGHTS_NAME, WEIGHTS_INDEX_NAME
 
 from glmtuner.extras.constants import SUPPORTED_MODELS
+from glmtuner.extras.logging import get_logger
 
+logger = get_logger(__name__)
 
 DEFAULT_CACHE_DIR = "cache"
 DEFAULT_DATA_DIR = "data"
@@ -49,14 +51,15 @@ def get_model_path(model_name: str) -> str:
 def list_checkpoint(model_name: str, finetuning_type: str) -> Dict[str, Any]:
     checkpoints = []
     save_dir = os.path.join(get_save_dir(model_name), finetuning_type)
+    logger.info("model_name is :{},finetuning_type is: {},save_dir is:{}".format(model_name, finetuning_type, save_dir))
     if save_dir and os.path.isdir(save_dir):
         for checkpoint in os.listdir(save_dir):
             if (
-                os.path.isdir(os.path.join(save_dir, checkpoint))
-                and any([
-                    os.path.isfile(os.path.join(save_dir, checkpoint, name))
-                    for name in (WEIGHTS_NAME, WEIGHTS_INDEX_NAME, PEFT_WEIGHTS_NAME)
-                ])
+                    os.path.isdir(os.path.join(save_dir, checkpoint))
+                    and any([
+                os.path.isfile(os.path.join(save_dir, checkpoint, name))
+                for name in (WEIGHTS_NAME, WEIGHTS_INDEX_NAME, PEFT_WEIGHTS_NAME)
+            ])
             ):
                 checkpoints.append(checkpoint)
     return gr.update(value=[], choices=checkpoints)
