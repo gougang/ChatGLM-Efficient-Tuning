@@ -21,8 +21,6 @@ from glmtuner.extras.save_and_load import load_valuehead_params
 from glmtuner.hparams import ModelArguments, FinetuningArguments
 from glmtuner.tuner.core.adapter import init_adapter
 
-logger = get_logger(__name__)
-
 check_min_version("4.29.1")
 require_version("datasets>=2.12.0", "To fix: pip install datasets>=2.12.0")
 require_version("accelerate>=0.21.0", "To fix: pip install accelerate>=0.21.0")
@@ -44,7 +42,7 @@ def load_model_and_tokenizer(
 
     Support both training and inference.
     """
-
+    logger = get_logger(__name__)
     if (not is_trainable) and model_args.checkpoint_dir is None:
         logger.warning("Checkpoint is not found at evaluation, load the original model.")
         finetuning_args = FinetuningArguments(finetuning_type="none")
