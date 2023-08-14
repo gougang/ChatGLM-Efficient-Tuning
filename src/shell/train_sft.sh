@@ -11,7 +11,7 @@ CUDA_VISIBLE_DEVICES=0 python ../train_bash.py \
     --overwrite_cache \
     --per_device_train_batch_size 40 \
     --per_device_eval_batch_size 40 \
-    --gradient_accumulation_steps 80 \
+    --gradient_accumulation_steps 16 \
     --max_source_length 1024 \
     --max_target_length 128 \
     --lr_scheduler_type cosine \
@@ -19,7 +19,7 @@ CUDA_VISIBLE_DEVICES=0 python ../train_bash.py \
     --save_steps 100 \
     --eval_steps 100 \
     --learning_rate 5e-5 \
-    --num_train_epochs 1000.0 \
+    --num_train_epochs 200.0 \
     --dev_ratio 0.05 \
     --evaluation_strategy steps \
     --load_best_model_at_end \
