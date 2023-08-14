@@ -129,7 +129,7 @@ def load_model_and_tokenizer(
         output_embedding_base_layer = model
         output_embedding_layer_name = "lm_head"
     elif tokenizer.eos_token_id == 2:  # ChatGLM2-6B
-        logger("tokenizer.eos_token_id == 2, use ChatGLM2-6B")
+        logger.info("tokenizer.eos_token_id == 2, use ChatGLM2-6B")
         assert hasattr(model, "transformer"), "Please update the model files of ChatGLM-6B."
         # Q：此处为什么会做这个操作呢？
         model.lm_head = model.transformer.output_layer
