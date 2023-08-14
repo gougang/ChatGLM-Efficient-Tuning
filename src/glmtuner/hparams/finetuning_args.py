@@ -2,9 +2,6 @@ import json
 from typing import Literal, Optional
 from dataclasses import asdict, dataclass, field
 
-from glmtuner.extras.logging import get_logger
-
-logger = get_logger(__name__)
 @dataclass
 class FinetuningArguments:
     """
@@ -48,7 +45,6 @@ class FinetuningArguments:
     )
 
     def __post_init__(self):
-        logger("FinetuningArguments __post_init__")
         if isinstance(self.lora_target, str):
             self.lora_target = [target.strip() for target in self.lora_target.split(",")] # support custom target modules of LoRA
 
