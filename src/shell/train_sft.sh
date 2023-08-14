@@ -19,7 +19,7 @@ CUDA_VISIBLE_DEVICES=0 python ../train_bash.py \
     --save_steps 100 \
     --eval_steps 100 \
     --learning_rate 5e-5 \
-    --num_train_epochs 10.0 \
+    --num_train_epochs 1000.0 \
     --dev_ratio 0.05 \
     --evaluation_strategy steps \
     --load_best_model_at_end \

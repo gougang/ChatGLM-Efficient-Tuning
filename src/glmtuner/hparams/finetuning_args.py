@@ -46,7 +46,7 @@ class FinetuningArguments:
     )
 
     def __post_init__(self):
-        print("FinetuningArguments __post_init__")
+        logger("FinetuningArguments __post_init__")
         if isinstance(self.lora_target, str):
             self.lora_target = [target.strip() for target in self.lora_target.split(",")] # support custom target modules of LoRA
 
