@@ -51,7 +51,9 @@ def get_model_path(model_name: str) -> str:
 def list_checkpoint(model_name: str, finetuning_type: str) -> Dict[str, Any]:
     checkpoints = []
     save_dir = os.path.join(get_save_dir(model_name), finetuning_type)
-    logger.info("model_name is :{},finetuning_type is: {},save_dir is:{}".format(model_name, finetuning_type, save_dir))
+    logger.info(
+        "model_name is :{},finetuning_type is: {},save_dir is:{}, os.getcwd() is:{}".format(model_name, finetuning_type,
+                                                                                            save_dir, os.getcwd()))
     if save_dir and os.path.isdir(save_dir):
         for checkpoint in os.listdir(save_dir):
             if (
