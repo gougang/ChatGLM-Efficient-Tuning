@@ -16,10 +16,10 @@ CUDA_VISIBLE_DEVICES=0 python ../train_bash.py \
     --max_source_length 256 \
     --max_target_length 128 \
     --lr_scheduler_type cosine \
-    --logging_steps 10 \
-    --save_steps 100 \
+    --logging_steps 1000 \
+    --save_steps 1000 \
     --learning_rate 1e-5 \
-    --num_train_epochs 5.0 \
+    --num_train_epochs 5000 \
     --resume_lora_training False \
     --plot_loss
 

@@ -1,3 +1,4 @@
+import logging
 import os
 import torch
 from typing import Literal, Optional, Tuple
@@ -116,7 +117,7 @@ def load_model_and_tokenizer(
 
     # Load and prepare pretrained models (without valuehead).
     model = AutoModel.from_pretrained(model_to_load, config=config, **config_kwargs)
-    print(f"model is: {model}")
+    logger.info(f"model is: {model}")
 
     # Register auto class to save the custom code files.
     if isinstance(config, PretrainedConfig):
@@ -130,7 +131,7 @@ def load_model_and_tokenizer(
         output_embedding_base_layer = model
         output_embedding_layer_name = "lm_head"
     elif tokenizer.eos_token_id == 2:  # ChatGLM2-6B
-        print("tokenizer.eos_token_id == 2, use ChatGLM2-6B")
+        logger("tokenizer.eos_token_id == 2, use ChatGLM2-6B")
         assert hasattr(model, "transformer"), "Please update the model files of ChatGLM-6B."
         # Q：此处为什么会做这个操作呢？
         model.lm_head = model.transformer.output_layer
@@ -139,7 +140,7 @@ def load_model_and_tokenizer(
     else:
         raise ValueError("Please update the model files of ChatGLM2-6B.")
 
-    print(f"is_trainable is: {is_trainable}")
+    logger.info(f"is_trainable is: {is_trainable}")
     # Initialize adapters
     model = prepare_model_for_training(
         model,
@@ -149,7 +150,7 @@ def load_model_and_tokenizer(
     ) if is_trainable else model
     model = init_adapter(model, model_args, finetuning_args, is_trainable)
 
-    print(f"new model is : {model}")
+    logger.info(f"new model is : {model}")
 
     if not is_trainable:
         model.requires_grad_(False)  # fix all model params
@@ -175,7 +176,7 @@ def load_model_and_tokenizer(
         To call a method of the wrapped model, simply manipulate the pretrained_model attribute of this class.
         """
         model = AutoModelForCausalLMWithValueHead.from_pretrained(model)
-        print(f"AutoModelForCausalLMWithValueHead model is:{model}")
+        logger.info(f"AutoModelForCausalLMWithValueHead model is:{model}")
         if stage == "rm" and model_args.checkpoint_dir is not None:  # load valuehead weights to evaluate reward model
             logger.warning("Only the last checkpoint containing valuehead will be loaded as the valuehead.")
             if load_valuehead_params(model, model_args.checkpoint_dir[-1]):

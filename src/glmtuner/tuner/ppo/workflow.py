@@ -1,6 +1,6 @@
 # Inspired by:
 # https://github.com/lvwerra/trl/blob/main/examples/sentiment/scripts/gpt-neox-20b_peft/gpt-neo-20b_sentiment_peft.py
-
+import logging
 import math
 from trl import PPOConfig
 from torch.optim import AdamW
@@ -10,18 +10,19 @@ from transformers.optimization import get_scheduler
 
 from glmtuner.dsets import DataCollatorForChatGLM, get_dataset, preprocess_dataset
 from glmtuner.extras.callbacks import LogCallback
+from glmtuner.extras.logging import get_logger
 from glmtuner.extras.ploting import plot_loss
 from glmtuner.hparams import ModelArguments, DataArguments, FinetuningArguments
 from glmtuner.tuner.core import load_model_and_tokenizer
 from glmtuner.tuner.ppo.trainer import PPOTrainerForChatGLM
 
-
+logger = get_logger(__name__)
 def run_ppo(
-    model_args: ModelArguments,
-    data_args: DataArguments,
-    training_args: Seq2SeqTrainingArguments,
-    finetuning_args: FinetuningArguments,
-    callbacks: Optional[List[TrainerCallback]] = [LogCallback()]
+        model_args: ModelArguments,
+        data_args: DataArguments,
+        training_args: Seq2SeqTrainingArguments,
+        finetuning_args: FinetuningArguments,
+        callbacks: Optional[List[TrainerCallback]] = [LogCallback()]
 ):
     dataset = get_dataset(model_args, data_args)
     model, tokenizer = load_model_and_tokenizer(model_args, finetuning_args, training_args.do_train, stage="ppo")
@@ -37,6 +38,8 @@ def run_ppo(
         ppo_epochs=1,
         max_grad_norm=training_args.max_grad_norm
     )
+
+    logger.info(f"ppo_config is:{ppo_config}")
 
     optimizer = AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=ppo_config.learning_rate)
     total_train_batch_size = \
@@ -65,6 +68,6 @@ def run_ppo(
 
     ppo_trainer.ppo_train(max_target_length=data_args.max_target_length)
     ppo_trainer.save_model()
-    ppo_trainer.save_state() # must be after save_model
+    ppo_trainer.save_state()  # must be after save_model
     if ppo_trainer.is_world_process_zero() and model_args.plot_loss:
         plot_loss(training_args.output_dir, keys=["loss", "reward"])
