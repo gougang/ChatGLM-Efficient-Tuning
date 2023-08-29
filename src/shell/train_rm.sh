@@ -16,10 +16,10 @@ CUDA_VISIBLE_DEVICES=0 python ../train_bash.py \
     --max_target_length 512 \
     --lr_scheduler_type cosine \
     --logging_steps 10 \
-    --save_steps 100 \
-    --eval_steps 100 \
+    --save_steps 200 \
+    --eval_steps 200 \
     --learning_rate 1e-5 \
-    --num_train_epochs 1.0 \
+    --num_train_epochs 3.0 \
     --dev_ratio 0.05 \
     --evaluation_strategy steps \
     --load_best_model_at_end \
